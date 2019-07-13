@@ -1,0 +1,4 @@
+{
+  "x-nx-token": "<Your NX token>",
+  "baseurl": "https://example.com/"
+}
