@@ -5,9 +5,15 @@ import (
 	"io/ioutil"
 )
 
+type WireguardConfig struct {
+	NetworkName string `json:"network-name"`
+	Peer        string `json:"peer"`
+}
 type NxcConfig struct {
-	NXToken string `json:"x-nx-token"`
-	BaseUrl string `json:"baseurl"`
+	NXToken         string            `json:"x-nx-token"`
+	BaseUrl         string            `json:"baseurl"`
+	Mode            []string          `json:"mode"`
+	WireguardConfig []WireguardConfig `json:"wireguard"`
 }
 
 func ReadConfig(path string) NxcConfig {

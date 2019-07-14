@@ -1,4 +1,14 @@
 {
-  "x-nx-token": "<Your NX token>",
-  "baseurl": "https://example.com/"
+  "x-nx-token": "INSERT_YOUR_NX-TOKEN_HERE",
+  "baseurl": "https://nx-tokenservice.pegnu.workers.dev/",
+  "mode": [
+    "dns",
+    "wireguard"
+  ],
+  "wireguard": [
+    {
+      "network-name": "rackfarm",
+      "peer": "gan37"
+    }
+  ]
 }
