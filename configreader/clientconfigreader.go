@@ -8,7 +8,8 @@ import (
 type DnsConfig struct {
 	TargetServerName string `json:"dns-server-name"`
 	RemoteZonePath   string `json:"remote-zone-path"`
-	LocalTempDir     string `json:"local-temp-directory"`
+	LocalTempDir     string `json:"local-temp-path"`
+	LocalZonePath    string `json:"local-zone-path"`
 }
 
 type WireguardConfig struct {

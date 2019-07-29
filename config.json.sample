@@ -14,7 +14,8 @@
   ],
   "dns": {
     "remote-zone-path": "zones/",
-    "local-temp-directory": "/tmp",
+    "local-temp-path": "/tmp",
+    "local-zone-path": "/etc/bind/zones/",
     "dns-server-name": "INSERT YOUR NAME-SERVER NAME HERE"
   }
 }

@@ -41,6 +41,7 @@ func GetContentFromWeb(sourceUrl string, headers map[string]string) ([]byte, err
 		logger.Printf("Execution of request: %v, resulted in error: %v", request, requestErr)
 		return nil, requestErr
 	}
+	defer response.Body.Close()
 	logger.Printf("Response code is %v", response.StatusCode)
 	result, ioError := ioutil.ReadAll(response.Body)
 	if ioError != nil {

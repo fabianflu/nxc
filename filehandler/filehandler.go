@@ -19,7 +19,6 @@ func CreateDirIfNotExist(dir string) {
 
 func GetFileInfo(filepath string) (os.FileInfo, error) {
 	if fileInfo, err := os.Stat(filepath); os.IsNotExist(err) {
-		logger.Printf("File with path: %v does not exist. Error: %v", filepath, err)
 		return nil, err
 	} else {
 		return fileInfo, nil
@@ -29,7 +28,7 @@ func GetFileInfo(filepath string) (os.FileInfo, error) {
 func GetModifiedDate(filepath string) time.Time {
 	info, err := GetFileInfo(filepath)
 	if err != nil {
-		logger.Printf("Failed to load FileInfo return 0-value of time")
+		logger.Printf("Failed to load FileInfo. Returning 0-value of time as modifiedDate")
 		return time.Time{}
 	}
 	return info.ModTime()
