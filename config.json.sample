@@ -1,6 +1,7 @@
 {
   "x-nx-token": "INSERT_YOUR_NX-TOKEN_HERE",
   "baseurl": "https://nx-tokenservice.pegnu.workers.dev/",
+  "remoteConfigPath": "nx.json",
   "mode": [
     "dns",
     "wireguard"
@@ -10,5 +11,10 @@
       "network-name": "rackfarm",
       "peer": "gan37"
     }
-  ]
+  ],
+  "dns": {
+    "remote-zone-path": "zones/",
+    "local-temp-directory": "/tmp",
+    "dns-server-name": "INSERT YOUR NAME-SERVER NAME HERE"
+  }
 }

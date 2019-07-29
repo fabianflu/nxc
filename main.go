@@ -9,16 +9,14 @@ import (
 
 func main() {
 
-	config := configreader.ReadConfig("config.json")
-	for _, Mode := range config.Mode {
+	clientConfig := configreader.ReadConfig("config.json")
+	configreader.FetchNxConfigurationFromRemote(clientConfig)
+	for _, Mode := range clientConfig.Mode {
 		switch Mode {
 		case "dns":
-			dns.DefineZones()
-			dns.DownloadZones()
-			dns.CheckZones()
-			dns.ApplyZones()
+			dns.ApplyDnsConfiguration(clientConfig)
 		case "wireguard":
-			for _, WireguardConfig := range config.WireguardConfig {
+			for _, WireguardConfig := range clientConfig.WireguardConfig {
 				fmt.Printf("Networkname: %s Peer: %s\n", WireguardConfig.NetworkName, WireguardConfig.Peer)
 				wireguard.DownloadConfig()
 				wireguard.CheckConfig()
@@ -27,6 +25,4 @@ func main() {
 		}
 
 	}
-
-	fmt.Printf("baseUrl: %s, token: %s, Wireguard-networks: %s\n", config.BaseUrl, config.NXToken, config.WireguardConfig[0].NetworkName)
 }
