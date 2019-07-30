@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var logger = log.New(os.Stdout, "[dns] ", log.LstdFlags)
@@ -28,6 +29,7 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	if e != nil {
 		logger.Panicf("Failed to find matching zone for %v with rror: %v! Shutting down", config.DnsConfig.TargetServerName, e)
 	}
+	serviceReloadRequired := false
 	tempDirName := clientConfig.DnsConfig.LocalTempDir
 	filehandler.CreateDirIfNotExist(tempDirName)
 	for _, zoneName := range masterZone.Zones {
@@ -43,10 +45,21 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 			continue
 		}
 		if !localZone.checkZone() {
+			logger.Printf("Error: Zone %v is not valid! SKIPPING", zoneName)
 			continue
 		}
-		localZone.applyZone()
+		serviceReloadRequired = localZone.refreshZoneIfNeeded() || serviceReloadRequired
 	}
+	if serviceReloadRequired {
+		e := exec.Command("systemctl", "reload", "bind9").Run()
+		if e != nil {
+			logger.Panic("Failed to reload service:", e)
+		}
+		logger.Printf("Done! Finished configuring %v! Zone update and bind reload successful!", clientConfig.DnsConfig.TargetServerName)
+	} else {
+		logger.Printf("DNS configration COMPLETED")
+	}
+
 }
 
 func defineZone(nxConfig configreader.NxConfig) (configreader.DnsMasterZone, error) {
@@ -80,7 +93,30 @@ func (zone LocalZone) checkZone() bool {
 	return success
 
 }
-func (zone LocalZone) applyZone() {
-	logger.Printf("TODO: Applying zone %v by copying it to: %v",
+func (zone LocalZone) refreshZoneIfNeeded() bool {
+	logger.Printf("Applying zone %v by copying it to: %v",
 		zone.ZoneName, clientConfig.DnsConfig.LocalZonePath+zone.ZoneFileName)
+
+	localZonePath := clientConfig.DnsConfig.LocalZonePath
+	zoneFilePathBuilder := strings.Builder{}
+	zoneFilePathBuilder.WriteString(localZonePath)
+	if !strings.HasSuffix(localZonePath, "/") {
+		zoneFilePathBuilder.WriteString("/")
+	}
+	zoneFilePathBuilder.WriteString(zone.ZoneFileName)
+	targetZonePath := zoneFilePathBuilder.String()
+	if filehandler.IsFileExistent(targetZonePath) {
+		logger.Printf("Zone %v already exists comparing files to see if reload is needed")
+		if filehandler.AreFilesEqualByHash(zone.TempZonePath, targetZonePath) {
+			logger.Printf("Your zone file: %v is up to date, no modification needed")
+			return false
+		}
+	}
+	copyErr := filehandler.CopyOrOverwrite(zone.TempZonePath, targetZonePath)
+	if copyErr != nil {
+		logger.Print("Failed to update", targetZonePath)
+		return false
+	}
+	logger.Print("Updated:", targetZonePath)
+	return true
 }
