@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 )
 
+//TODO check if config file can be outside of binary
+
 type DnsConfig struct {
 	TargetServerName string `json:"dns-server-name"`
 	RemoteZonePath   string `json:"remote-zone-path"`

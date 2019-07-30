@@ -32,6 +32,26 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	serviceReloadRequired := false
 	tempDirName := clientConfig.DnsConfig.LocalTempDir
 	filehandler.CreateDirIfNotExist(tempDirName)
+	serviceReloadRequired = updateZones(masterZone, tempDirName)
+	if serviceReloadRequired {
+		e := exec.Command("systemctl", "reload", "bind9").Run()
+		if e != nil {
+			logger.Panic("Failed to reload service:", e)
+		}
+		logger.Printf("Done! Finished configuring %v! Zone update and bind reload successful!", clientConfig.DnsConfig.TargetServerName)
+	} else {
+		logger.Printf("DNS configration COMPLETED")
+	}
+
+}
+
+func applyNameServerConfig(nameServer string) bool {
+	//TODO check if name-server-configuration is up to date and act accordingly
+	return false
+}
+
+func updateZones(masterZone configreader.DnsMasterZone, tempDirName string) bool {
+	serviceReloadRequired := false
 	for _, zoneName := range masterZone.Zones {
 		localZone := LocalZone{
 			ZoneName:     zoneName,
@@ -50,16 +70,7 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 		}
 		serviceReloadRequired = localZone.refreshZoneIfNeeded() || serviceReloadRequired
 	}
-	if serviceReloadRequired {
-		e := exec.Command("systemctl", "reload", "bind9").Run()
-		if e != nil {
-			logger.Panic("Failed to reload service:", e)
-		}
-		logger.Printf("Done! Finished configuring %v! Zone update and bind reload successful!", clientConfig.DnsConfig.TargetServerName)
-	} else {
-		logger.Printf("DNS configration COMPLETED")
-	}
-
+	return serviceReloadRequired
 }
 
 func defineZone(nxConfig configreader.NxConfig) (configreader.DnsMasterZone, error) {
@@ -106,7 +117,7 @@ func (zone LocalZone) refreshZoneIfNeeded() bool {
 	zoneFilePathBuilder.WriteString(zone.ZoneFileName)
 	targetZonePath := zoneFilePathBuilder.String()
 	if filehandler.IsFileExistent(targetZonePath) {
-		logger.Printf("Zone %v already exists comparing files to see if reload is needed")
+		logger.Printf("Zone %v already exists comparing files to see if update is needed")
 		if filehandler.AreFilesEqualByHash(zone.TempZonePath, targetZonePath) {
 			logger.Printf("Your zone file: %v is up to date, no modification needed")
 			return false
