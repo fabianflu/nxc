@@ -56,7 +56,7 @@ func applyNameServerConfig(nameServer string) bool {
 	output, commandError := exec.Command("named-checkconf", tempConfFilePath).CombinedOutput()
 	result := string(output)
 	if commandError != nil {
-		logger.Printf("Conf-Check failed with error: %v, command result was: %v", err, result)
+		logger.Printf("Conf-Check failed with error: %v, command result was: %v", commandError, result)
 		return false
 	}
 
