@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -72,4 +73,21 @@ func CopyOrOverwrite(src string, dst string) error {
 		return err
 	}
 	return nil
+}
+
+func BuildFilePathFromParts(filePathParts ...string) string {
+	builder := strings.Builder{}
+	for index, part := range filePathParts {
+		if index != 0 {
+			previousEndsWithSlash := strings.HasSuffix(filePathParts[index-1], "/")
+			currentStartsWithSlash := strings.HasPrefix(part, "/")
+			if !currentStartsWithSlash && !previousEndsWithSlash {
+				builder.WriteString("/")
+			} else if previousEndsWithSlash {
+				part = strings.TrimPrefix(part, "/")
+			}
+		}
+		builder.WriteString(part)
+	}
+	return builder.String()
 }

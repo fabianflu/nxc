@@ -13,9 +13,15 @@
     }
   ],
   "dns": {
-    "remote-zone-path": "zones/",
-    "local-temp-path": "/tmp",
-    "local-zone-path": "/etc/bind/zones/",
+    "local": {
+      "temp-path": "/tmp/",
+      "zone-path": "/etc/bind/zones/",
+      "config-path": "/etc/bind/"
+    },
+    "remote": {
+      "config-path": "bind-config/",
+      "zone-path": "zones/"
+    },
     "dns-server-name": "INSERT YOUR NAME-SERVER NAME HERE"
   }
 }

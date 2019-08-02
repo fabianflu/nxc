@@ -8,18 +8,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 var logger = log.New(os.Stdout, "[dns] ", log.LstdFlags)
 
 var clientConfig = configreader.NxcConfig{}
-
-type LocalZone struct {
-	ZoneName     string ""
-	ZoneFileName string ""
-	TempZonePath string ""
-}
 
 func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	clientConfig = config
@@ -29,8 +22,8 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	if e != nil {
 		logger.Panicf("Failed to find matching zone for %v with rror: %v! Shutting down", config.DnsConfig.TargetServerName, e)
 	}
-	serviceReloadRequired := false
-	tempDirName := clientConfig.DnsConfig.LocalTempDir
+	serviceReloadRequired := applyNameServerConfig(clientConfig.DnsConfig.TargetServerName)
+	tempDirName := clientConfig.DnsConfig.LocalPaths.LocalTempPath
 	filehandler.CreateDirIfNotExist(tempDirName)
 	serviceReloadRequired = updateZones(masterZone, tempDirName)
 	if serviceReloadRequired {
@@ -40,14 +33,34 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 		}
 		logger.Printf("Done! Finished configuring %v! Zone update and bind reload successful!", clientConfig.DnsConfig.TargetServerName)
 	} else {
-		logger.Printf("DNS configration COMPLETED")
+		logger.Printf("Done! Dns configration already up to date!")
 	}
 
 }
 
 func applyNameServerConfig(nameServer string) bool {
-	//TODO check if name-server-configuration is up to date and act accordingly
-	return false
+	confFileName := nameServer + ".conf"
+	remoteConfFilePath := filehandler.BuildFilePathFromParts(clientConfig.BaseUrl, clientConfig.DnsConfig.RemotePaths.BindConfigPath, confFileName)
+	tempConfFilePath := filehandler.BuildFilePathFromParts(clientConfig.DnsConfig.LocalPaths.LocalTempPath, confFileName)
+	err := filefetcher.DownloadFileFromWeb(tempConfFilePath, remoteConfFilePath, true, clientConfig.NXToken)
+	if err != nil {
+		logger.Printf("Error: Failed to download nameserver conf file, SKIPPING configuration")
+		return false
+	}
+	appliedConfPath := filehandler.BuildFilePathFromParts(clientConfig.DnsConfig.LocalPaths.BindConfigPath, confFileName)
+	areFilesEqual := filehandler.AreFilesEqualByHash(tempConfFilePath, appliedConfPath)
+	if areFilesEqual {
+		logger.Printf("Conf file is already up to date")
+		return false
+	}
+	output, commandError := exec.Command("named-checkconf", tempConfFilePath).CombinedOutput()
+	result := string(output)
+	if commandError != nil {
+		logger.Printf("Conf-Check failed with error: %v, command result was: %v", err, result)
+		return false
+	}
+
+	return true
 }
 
 func updateZones(masterZone configreader.DnsMasterZone, tempDirName string) bool {
@@ -56,7 +69,7 @@ func updateZones(masterZone configreader.DnsMasterZone, tempDirName string) bool
 		localZone := LocalZone{
 			ZoneName:     zoneName,
 			ZoneFileName: zoneName + ".db",
-			TempZonePath: tempDirName + "/" + zoneName + ".db",
+			TempZonePath: filehandler.BuildFilePathFromParts(tempDirName, zoneName+".db"),
 		}
 
 		err := localZone.downloadZone()
@@ -82,52 +95,4 @@ func defineZone(nxConfig configreader.NxConfig) (configreader.DnsMasterZone, err
 		}
 	}
 	return configreader.DnsMasterZone{}, errors.New("No matching zone found with name: " + name)
-}
-
-func (zone LocalZone) downloadZone() error {
-	logger.Print("Downloading file:", zone.ZoneFileName)
-	zoneUrl := clientConfig.BaseUrl + clientConfig.DnsConfig.RemoteZonePath + zone.ZoneFileName
-	e := filefetcher.DownloadFileFromWeb(zone.TempZonePath, zoneUrl, true, clientConfig.NXToken)
-	return e
-}
-
-func (zone LocalZone) checkZone() bool {
-	out, runError := exec.Command("named-checkzone", zone.ZoneName, zone.TempZonePath).CombinedOutput()
-	output := string(out)
-	success := runError == nil
-	if success {
-		logger.Printf("Zone-check for zone %v and file %v successfull. %v", zone.ZoneName, zone.TempZonePath, output)
-	} else {
-		logger.Printf("Zone-check for zone %v and file %v failed. Command failed with output %v and error %v",
-			zone.ZoneName, zone.TempZonePath, output, runError)
-	}
-	return success
-
-}
-func (zone LocalZone) refreshZoneIfNeeded() bool {
-	logger.Printf("Applying zone %v by copying it to: %v",
-		zone.ZoneName, clientConfig.DnsConfig.LocalZonePath+zone.ZoneFileName)
-
-	localZonePath := clientConfig.DnsConfig.LocalZonePath
-	zoneFilePathBuilder := strings.Builder{}
-	zoneFilePathBuilder.WriteString(localZonePath)
-	if !strings.HasSuffix(localZonePath, "/") {
-		zoneFilePathBuilder.WriteString("/")
-	}
-	zoneFilePathBuilder.WriteString(zone.ZoneFileName)
-	targetZonePath := zoneFilePathBuilder.String()
-	if filehandler.IsFileExistent(targetZonePath) {
-		logger.Printf("Zone %v already exists comparing files to see if update is needed")
-		if filehandler.AreFilesEqualByHash(zone.TempZonePath, targetZonePath) {
-			logger.Printf("Your zone file: %v is up to date, no modification needed")
-			return false
-		}
-	}
-	copyErr := filehandler.CopyOrOverwrite(zone.TempZonePath, targetZonePath)
-	if copyErr != nil {
-		logger.Print("Failed to update", targetZonePath)
-		return false
-	}
-	logger.Print("Updated:", targetZonePath)
-	return true
 }

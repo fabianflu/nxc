@@ -5,13 +5,21 @@ import (
 	"io/ioutil"
 )
 
-//TODO check if config file can be outside of binary
-
 type DnsConfig struct {
-	TargetServerName string `json:"dns-server-name"`
-	RemoteZonePath   string `json:"remote-zone-path"`
-	LocalTempDir     string `json:"local-temp-path"`
-	LocalZonePath    string `json:"local-zone-path"`
+	TargetServerName string               `json:"dns-server-name"`
+	RemotePaths      DnsRemotePathsConfig `json:"remote"`
+	LocalPaths       DnsLocalPathsConfig  `json:"local"`
+}
+
+type DnsLocalPathsConfig struct {
+	LocalTempPath  string `json:"temp-path"`
+	ZonePath       string `json:"zone-path"`
+	BindConfigPath string `json:"config-path"`
+}
+
+type DnsRemotePathsConfig struct {
+	ZonePath       string `json:"zone-path"`
+	BindConfigPath string `json:"config-path"`
 }
 
 type WireguardConfig struct {
