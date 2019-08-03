@@ -37,9 +37,9 @@ func (zone LocalZone) refreshZoneIfNeeded() bool {
 	logger.Printf("Applying zone %v by copying it to: %v",
 		zone.ZoneName, clientConfig.DnsConfig.LocalPaths.ZonePath+zone.ZoneFileName)
 	if filehandler.IsFileExistent(targetZonePath) {
-		logger.Printf("Zone %v already exists comparing files to see if update is needed")
+		logger.Printf("Zone %v already exists comparing files to see if update is needed", zone.ZoneName)
 		if filehandler.AreFilesEqualByHash(zone.TempZonePath, targetZonePath) {
-			logger.Printf("Your zone file: %v is up to date, no modification needed")
+			logger.Printf("Your zone file: %v is up to date, no modification needed", zone.ZoneFileName)
 			return false
 		}
 	}

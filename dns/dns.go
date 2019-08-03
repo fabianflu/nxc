@@ -25,7 +25,7 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	serviceReloadRequired := applyNameServerConfig(clientConfig.DnsConfig.TargetServerName)
 	tempDirName := clientConfig.DnsConfig.LocalPaths.LocalTempPath
 	filehandler.CreateDirIfNotExist(tempDirName)
-	serviceReloadRequired = updateZones(masterZone, tempDirName)
+	serviceReloadRequired = serviceReloadRequired || updateZones(masterZone, tempDirName)
 	if serviceReloadRequired {
 		e := exec.Command("systemctl", "reload", "bind9").Run()
 		if e != nil {
