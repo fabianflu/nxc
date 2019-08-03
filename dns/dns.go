@@ -22,11 +22,11 @@ func ApplyDnsConfiguration(config configreader.NxcConfig) {
 	if e != nil {
 		logger.Panicf("Failed to find matching zone for %v with rror: %v! Shutting down", config.DnsConfig.TargetServerName, e)
 	}
-	serviceReloadRequired := applyNameServerConfig(clientConfig.DnsConfig.TargetServerName)
+	confRequiresReload := applyNameServerConfig(clientConfig.DnsConfig.TargetServerName)
 	tempDirName := clientConfig.DnsConfig.LocalPaths.LocalTempPath
 	filehandler.CreateDirIfNotExist(tempDirName)
-	serviceReloadRequired = serviceReloadRequired || updateZones(masterZone, tempDirName)
-	if serviceReloadRequired {
+	zonesRequiresReload := updateZones(masterZone, tempDirName)
+	if confRequiresReload || zonesRequiresReload {
 		e := exec.Command("systemctl", "reload", "bind9").Run()
 		if e != nil {
 			logger.Panic("Failed to reload service:", e)
